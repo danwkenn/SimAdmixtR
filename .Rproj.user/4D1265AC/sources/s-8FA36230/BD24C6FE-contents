@@ -1,0 +1,32 @@
+#Read in the allele frequency function.
+read_in_af_data <- function(file){
+  
+  #Read in raw:
+  allele_freq_data <- read.csv(file = file,stringsAsFactors = FALSE)
+  allele_freq_data <- apply(allele_freq_data,2,as.character)
+  
+  #Convert to tidyverse object "tibble".
+  allele_freq_data <- as_tibble(allele_freq_data)
+  
+  #Rename columns:
+  colnames(allele_freq_data) <- c("snp_id","chr_id","variants","pop1_af","pop2_af","daf","evc_prediction")
+  
+  #Subset by columns:
+  allele_freq_data <- allele_freq_data %>% select(snp_id,variants,pop1_af,pop2_af)
+  
+  #Melt into a long form:
+  allele_freq_data <- allele_freq_data %>% melt(id = c("snp_id","variants"))
+  
+  #Convert allele frequencies to usable vectors:
+  allele_freq_data <- 
+    allele_freq_data %>% 
+    mutate(variants = strsplit(variants,"/")) %>%
+    mutate(value = map2(.x = value,.y = variants,.f = function(x,y) af_split(x,length(y))))
+  
+  #Remove white space:
+  allele_freq_data$snp_id <- str_replace_all(allele_freq_data$snp_id,pattern = " ",replacement = "")
+  
+  #Convert to wide format:
+  allele_freq_data <- allele_freq_data %>% spread(variable,value)
+  return(allele_freq_data)
+}

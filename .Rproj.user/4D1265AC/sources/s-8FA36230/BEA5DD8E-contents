@@ -1,0 +1,10 @@
+#Internal function used for converting allele vector to string:
+genotype_finder.Internal <- function(x){
+  genotypes <- c()
+  for(i in 1:length(x)){
+    for(j in 1:length(x)){
+      genotypes <- c(genotypes,paste0(x[i],x[j]))
+    }
+  }
+  return(genotypes)
+}

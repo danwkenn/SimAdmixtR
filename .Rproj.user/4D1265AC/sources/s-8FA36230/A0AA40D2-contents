@@ -1,0 +1,24 @@
+#Simulate admixture for n_samples samples.
+#Ancestor population ratio specifies the number
+#of ancestors in each of the two populations and
+#the number of generations
+simulate_admixture <- function(
+  n_samples,
+  ancestor_pop_label,
+  file
+){
+  
+  allele_freq_data <- read_in_af_data(file)
+  
+  sim_samples <- 
+    simulate_admixture.Internal(
+      n = n_samples,
+      ancestor_pop_label = ancestor_pop_label,
+      allele_freq.list = stitch(
+        allele_freq_data[,3],
+        allele_freq_data[,4])
+    )
+  
+  sim_data <- back_convert.Internal(sim_samples,allele_freq_data)
+  return(sim_data)
+}

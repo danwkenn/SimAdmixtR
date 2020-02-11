@@ -1,0 +1,6 @@
+#Mostly internal: finds possible genotypes from alleles.
+genotype_finder <- function(allele_freq_data){
+  return(
+    lapply(allele_freq_data$variants,genotype_finder.Internal)
+  )
+}

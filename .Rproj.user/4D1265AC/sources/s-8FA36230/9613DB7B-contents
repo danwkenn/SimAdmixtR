@@ -1,0 +1,31 @@
+#Internal function which simulates mendelian inheritance for a single allele.
+sim_single_locus.Internal <- function(
+  ancestor_pop_label, #Label of ancestor populations
+  allele_freq #length-2 list of allele frequencies for pop-1 and pop-2.
+){
+  
+  #Calculate number of generations:
+  G <- log(length(ancestor_pop_label),base = 2)
+  K <- length(allele_freq[[1]])
+  
+  #Simulate ancestor alleles:
+  gen = G
+  ancestor_alleles <- 
+    sapply(ancestor_pop_label,
+           function(x) 
+             sample(1:K,size = 2,
+                    replace = TRUE,
+                    prob = allele_freq[[x]]))
+  previous_alleles <- ancestor_alleles
+  while(gen > 0){
+    gen = gen - 1
+    #Mendelian inheritance:
+    current_alleles <- matrix(,2,2^gen)
+    for(i in 1:(2^gen)){
+      current_alleles[1,i] <- sample(previous_alleles[,2*i-1],size = 1)
+      current_alleles[2,i] <- sample(previous_alleles[,2*i],size = 1)
+    }
+    previous_alleles <- current_alleles
+  }
+  return(current_alleles)
+}

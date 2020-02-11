@@ -1,0 +1,43 @@
+Package: SimAdmixtR
+Type: Package
+Title: Simulates a set of admixed diploid genotypes based on SNP allele frequencies.
+Version: 0.1.0
+Author: Daniel W. Kennedy
+Maintainer: Daniel W. Kennedy <dan.w.kennedy@outlook.com>
+Description: The package imports the SNP allele frequencies from two or more origin populations, as well as the number and make-up of ancestors. It then randomly samples the ancestor genomes from the origin populations, and then, using Mendelian rules, simulates the inheritance of alleles down to the current generation. It can also repeat this process a specified number of times.
+    The package then outputs the set of repeated simulated genotypes as text file in the input format of the STRUCTURE program. See website: XXXXX for more information.
+License: MIT License
+
+Copyright (c) 2020 Daniel William Kennedy
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+Encoding: UTF-8
+LazyData: true
+Imports:
+    tibble
+    dplyr
+    magrittr
+    reshape2
+    purrr
+    stringr
+    tidyr
+Suggests:
+    ggplot2
+Authors@R: person("Daniel", "Kennedy", email = "dan.w.kennedy@outlook.com",
+role = c("aut", "cre"))

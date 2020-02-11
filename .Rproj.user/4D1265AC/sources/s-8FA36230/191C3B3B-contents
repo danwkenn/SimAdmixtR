@@ -1,0 +1,23 @@
+#Internal function for simulating set of samples. Not for direct use
+#See simulate_admixture().
+simulate_admixture.Internal <- function(
+  n,
+  ancestor_pop_label,
+  #ancestor_pop_ratio,
+  allele_freq.list
+){
+  
+  # ancestor_pop_label <- c(
+  #   rep(1,ancestor_pop_ratio[1]),
+  #   rep(2,ancestor_pop_ratio[2])
+  # )
+  
+  lapply(1:n,
+         function(x){
+           sim_single_sample.Internal(
+             ancestor_pop_label = ancestor_pop_label,
+             allele_freq.list = allele_freq.list
+           )
+         }
+  )
+}
