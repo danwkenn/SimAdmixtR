@@ -10,8 +10,8 @@
 #' @examples
 #' #Download files to temporary directory:
 #' temp_dir <- tempdir()
-#' download.file(url = XXXX,destfile = paste0(temp_dir,"/input-af-example.csv"))
-#' download.file(url = XXXX,destfile = paste0(temp_dir,"/example-structure-file.csv"))
+#' download.file(url = "https://raw.githubusercontent.com/danwkenn/SimAdmixtR/master/inst/example-files/input-allele-frequencies-three-snps.csv",destfile = paste0(temp_dir,"/input-af-example.csv"))
+#' download.file(url = "https://raw.githubusercontent.com/danwkenn/SimAdmixtR/master/inst/example-files/simple-three-allele-example.csv",destfile = paste0(temp_dir,"/example-structure-file.csv"))
 #'
 #' sim_data <- simulate_admixture(
 #' n_samples = 10,
@@ -24,7 +24,8 @@
 #' example_structure_file = paste0(temp_dir,"/example-structure-file.csv"),
 #' output = "example-output",
 #' type = c("txt","csv"))
-
+#' @importFrom magrittr %>%
+#' @export
 write_to_structure <- function(
   sim_data,
   structure_snp_order = NULL,
@@ -37,7 +38,7 @@ write_to_structure <- function(
 
   #If an example structure file is given, then the structure from this file is used:
   if(!is.null(example_structure_file)){
-    example_data <- read.table(
+    example_data <- utils::read.table(
       file = example_structure_file,
       sep = ",",
       header = TRUE)
@@ -68,13 +69,13 @@ write_to_structure <- function(
   structure_code <- c("A","C","T","G")
 
   #convert simulated data to long data-frame format:
-  sim_data_long <- melt(sim_data,varnames = c("chromosome","snp_id"),level = "subject")
+  sim_data_long <- reshape2::melt(sim_data,varnames = c("chromosome","snp_id"),level = "subject")
 
   #Convert data to numeric:
   sim_data_long <-
-    sim_data_long %>% mutate(
-      value = factor(as.character(value),levels = structure_code)) %>%
-    mutate(num_value = as.numeric(value))
+    sim_data_long %>% dplyr::mutate(
+      value = factor(as.character(.data$value),levels = structure_code)) %>%
+    dplyr::mutate(num_value = as.numeric(.data$value))
 
   #Ensure order of SNPs are correct:
   sim_data_long$snp_id <- factor(as.character(sim_data_long$snp_id),levels = structure_snp_order)
@@ -85,7 +86,7 @@ write_to_structure <- function(
 
   sim_data_long <- sim_data_long[!is.na(sim_data_long$snp_id),]
   #Convert to matrix form:
-  allele_data <- sim_data_long %>% dcast(Lsubject ~ snp_id + chromosome,value.var = "num_value")
+  allele_data <- sim_data_long %>% reshape2::dcast(Lsubject ~ snp_id + chromosome,value.var = "num_value")
 
   colnames(allele_data) <- NULL
   allele_data <- as.matrix(allele_data[,-1])
@@ -122,6 +123,6 @@ write_to_structure <- function(
       p}
     )
 
-    write.table(allele_data,file = paste0(output,".csv"),sep = ",",row.names = FALSE)
+    utils::write.table(allele_data,file = paste0(output,".csv"),sep = ",",row.names = FALSE)
   }
 }

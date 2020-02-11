@@ -1,0 +1,212 @@
+---
+title: "Validation: Observed Genotype Frequencies versus Expected values"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{validation-observed-vs-expected}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup,message=FALSE}
+library(ggplot2)
+library(SimAdmixtR)
+set.seed(214)
+```
+
+# Introduction
+
+The following is a validation for some simple pedigrees where expected genotype frequencies could easily be calculated based on the rules of mendelian inheritance. 
+
+```{r }
+#Read in allele frequency data:
+example_files_location <- system.file("example-files", package = "SimAdmixtR")
+
+allele_data <- read_in_af_data(paste0(example_files_location,"/input-allele-frequencies.csv"))
+```
+
+# Test 1: All from a single population
+
+When all ancestors are set to a single population, the genotype frequencies should match those predicted from the allele frequencies of that population. We simulate 5000 individuals, where all 8 of their great grandparents are from GBR or JPT. We then calculate the genotype frequencies using the `summarise_admixture()` function.
+
+```{r}
+#Simulate 5000 samples where all GBR:
+sim_data <- 
+  simulate_admixture(
+    n_samples = 5000,
+    ancestor_pop_label = rep(2,8),
+    file = paste0(example_files_location,"/input-allele-frequencies.csv")
+  )
+
+#Summarise the simulated samples to get allele frequencies:
+summaries <- summarise_admixture(
+  sim_data,
+  pop_allele_file = paste0(example_files_location,"/input-allele-frequencies.csv"))
+```
+
+Expected Genotype frequencies can be calculated based on the frequencies of the two alleles $B$ and $b$, given by $p_b$ and $p_B$, where $p_b + p_B = 1$. The probabilities of each genotype are given below:
+
+$\mathrm{Pr}{\left(BB\right)} = p_Bp_B$, 
+$\mathrm{Pr}{\left(Bb\right)} = 2p_Bp_b$, 
+$\mathrm{Pr}{\left(bb\right)} = p_bp_b$
+
+We can therfore calculate the expected genotype frequencies for all 45 genes, and plot them against the observed frequencies.
+```{r}
+#Calculate expected genotype frequencies from allele frequency data:
+expected_genotype_freqs <- lapply(
+  allele_data$pop2_af, 
+  function(x) c(x[1]^2,2 * x[1] * x[2],x[2]^2))
+
+#Compare with observed frequencies:
+freq_data <- melt(summaries$frequencies)
+colnames(freq_data) <- c("genotype","observed","snp_id")
+freq_data$expected <- melt(expected_genotype_freqs)[,1]
+ggplot(
+  data = freq_data) +
+  geom_abline(slope = 1, intercept = 0,colour = "red") +
+  geom_point(aes(x = observed, y = expected)) +
+  labs(x = "Expected Genotype Frequency",
+  y = "Observed Genotype Frequency") +
+  ggtitle("All GBR")
+```
+
+The observed genotype frequencies and expected genotype frequencies are, as shown above, highly consistent. There some very small discrepancies where points are slightly above or below the red equality line, however this is to be expected with a finite number of samples.
+
+The experiment can then be repeated with all JPT great grandparents.
+
+```{r}
+#Simulate 5000 samples where all Japanese:
+sim_data <- 
+  simulate_admixture(
+    n_samples = 5000,
+    ancestor_pop_label = rep(1,8),
+    file = paste0(example_files_location,"/input-allele-frequencies.csv")
+  )
+
+#Summarise the simulated samples to get allele frequencies:
+summaries <- summarise_admixture(
+  sim_data,
+  pop_allele_file = paste0(example_files_location,"/input-allele-frequencies.csv"))
+
+expected_genotype_freqs <- lapply(
+  allele_data$pop1_af, 
+  function(x) c(x[1]^2,2 * x[1] * x[2],x[2]^2))
+freq_data <- melt(summaries$frequencies)
+colnames(freq_data) <- c("genotype","observed","snp_id")
+freq_data$expected <- melt(expected_genotype_freqs)[,1]
+ggplot(
+  data = freq_data) +
+  geom_abline(slope = 1, intercept = 0,colour = "red") +
+  geom_point(aes(x = observed, y = expected)) +
+  labs(x = "Expected Genotype Frequency",
+       y = "Observed Genotype Frequency") +
+  ggtitle("All JPT")
+```
+
+This shows again a very high correspondence between observed and expected genotype frequencies. We can therefore conclude that the simulation is sampling the ancestor genotypes correctly from the populations.
+
+# Test 2: Admixture in one and two generations
+
+We next test the simulated inheritance of alleles from ancestors for a single generation where mother and father genotypes are sampled, then a single round of inheritance. Here we simulated one JPT parent and one GBR parent. As above, because the pedigree is relatively simple, we can calculate the expected genotype frequencies, then compare against the observed frequencies.
+
+```{r}
+#Simulate 5000 samples for JPT mother and GBR father:
+sim_data <- 
+  simulate_admixture(
+    n_samples = 5000,
+    ancestor_pop_label = c(1,2),
+    file = paste0(example_files_location,"/input-allele-frequencies.csv")
+  )
+
+#Summarise the simulated samples to get allele frequencies:
+summaries <- summarise_admixture(
+  sim_data,
+  pop_allele_file = paste0(example_files_location,"/input-allele-frequencies.csv"))
+
+expected_genotype_freqs <- lapply(
+  1:nrow(allele_data), function(x){
+    gm <- 
+    mum <- allele_data$pop1_af[[x]]
+    dad <- allele_data$pop2_af[[x]]
+    return(
+      c(
+        mum[1] * dad[1], #homozygote
+        mum[1] * dad[2] +
+        mum[2] * dad[1], #heterozygote
+        mum[2] * dad[2] #second homozygote
+      )
+    )})
+
+freq_data <- melt(summaries$frequencies)
+colnames(freq_data) <- c("genotype","observed","snp_id")
+freq_data$expected <- melt(expected_genotype_freqs)[,1]
+ggplot(
+  data = freq_data) +
+  geom_abline(slope = 1, intercept = 0,colour = "red") +
+  geom_point(aes(x = observed, y = expected)) +
+  labs(x = "Expected Genotype Frequency",
+       y = "Observed Genotype Frequency") +
+  ggtitle("One JPT parent, one GBR parent")
+```
+
+As shown above we see a strong correspondence between the expected and observed genotype frequencies.
+
+We now use a slightly more complicated pedigree, with 4 grandparents, one JPT and three GBR. The calculation of the expected genotypes requires first calculating genotype probabilities for the mixed ancestry parent, which will be labelled $m$, with the probability that $m$ passes down $B$ being $m_B$. This probability is calculated to be $m_B = \mathrm{Pr}{\left(BB\right)} +  0.5 \mathrm{Pr}{\left(Bb\right)}$, where the probabilities that $m$ carries $BB$ or $Bb$, $\mathrm{Pr}{\left(BB\right)}$ and $\mathrm{Pr}{\left(Bb\right)}$, are calculated from the ancestral population frequencies.
+
+```{r}
+#Simulate 5000 samples where all Japanese:
+sim_data <- 
+  simulate_admixture(
+    n_samples = 5000,
+    ancestor_pop_label = c(1,2,2,2),
+    file = paste0(example_files_location,"/input-allele-frequencies.csv")
+  )
+
+#Summarise the simulated samples to get allele frequencies:
+summaries <- summarise_admixture(
+  sim_data,
+  pop_allele_file = paste0(example_files_location,"/input-allele-frequencies.csv"))
+
+allele_data <- read_in_af_data(paste0(example_files_location,"/input-allele-frequencies.csv"))
+expected_genotype_freqs <- lapply(
+  1:nrow(allele_data), function(x){
+    gm <- allele_data$pop1_af[[x]] #Japanese maternal Grandmother
+    gd <- allele_data$pop2_af[[x]] #GBR maternal grandfather
+    #Probability mother passes on allele 1 is:
+    mum <- gm[1] * gd[1] + # probability of mother having homozygous genotype 11
+      0.5 * (gm[1] * gd[2] + gm[2] * gd[1]) # half times probability of mother having heterozygous genotype 12
+    mum <- c(mum, 1-mum) #Probability mother passes on allele 2 is 1 - Pr(passes on allele 1)
+    dad = allele_data$pop2_af[[x]] #Father is GBR
+    return(
+      c(
+        mum[1] * dad[1], #homozygous
+        mum[1] * dad[2] +
+        mum[2] * dad[1],#heterozygous
+        mum[2] * dad[2] #2nd homozygous
+      )
+    )})
+
+
+freq_data <- melt(summaries$frequencies)
+colnames(freq_data) <- c("genotype","observed","snp_id")
+freq_data$expected <- melt(expected_genotype_freqs)[,1]
+ggplot(
+  data = freq_data) +
+  geom_abline(slope = 1, intercept = 0,colour = "red") +
+  geom_point(aes(x = observed, y = expected)) +
+  labs(x = "Expected Genotype Frequency",
+       y = "Observed Genotype Frequency") +
+  ggtitle("One JPT grandparent, rest GBR")
+```
+
+Again the expected and observed frequencies are consistent.
+
+# Conclusion
+
+Through the two tests conducted, the observed genotype frequencies of the simulated samples were highly consistent with the frequencies expected under mendelian inheritance. The method, which includes both sampling ancestor genotypes from ancestral populations and simulating inheritance can therefore be considered validated for 2 generations. Given that code uses an iterative approach over generations, it is therefore reasonable to consider the approach validated for greater than two generations.

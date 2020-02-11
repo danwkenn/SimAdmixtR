@@ -1,4 +1,11 @@
 #' Function which simulates mendelian inheritance for a single allele, beginning with a random draws of variants based on the population allele frequencies.
+#'
+#' The function proceeds as follows:
+#' \enumerate{
+#' \item{For each of the ancestors, using the ancestor's population index, draw two alleles randomly from the ancestor's population allele frequency.}
+#' \item{Based on Mendelian Inheritance, for each generation, randomly and with equal probability draw one allele from the mother and one allele from the father. Therefore, each generation there will half the number of people/allele pairs.}
+#' \item{Proceed until there is only one sample left.}
+#' }
 #' @param ancestor_pop_label A vector of integers giving the highest level of the family tree, which consists only of ancestors from pure genetic populations. Integers index the population, with order given by the order in which the population dominant allele frequencies are provided in the input allele frequencies file.
 #' @param allele_freq A list of vectors of the population allele frequencies. Index must match the index of \code{ancestor_pop_label}.
 #' @return A matrix with two rows and a single column. The elements correspond to the two alleles for the resulting genotype at the given SNP. The values are either 1 or 2, and correspond to the two variants in order of the supplied allele frequency vectors.
@@ -9,7 +16,7 @@
 #' allele_freq = list(
 #' c(0.2,0.9),c(0.9,0.2)
 #' ))
-
+#' @export
 sim_single_locus <- function(
   ancestor_pop_label,
   allele_freq

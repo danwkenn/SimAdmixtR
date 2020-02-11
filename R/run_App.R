@@ -1,4 +1,5 @@
 #' Run a basic User Interface to easily run simulation experiments and "download" the simulated data.
+#' @export
 #' @examples
 #' \dontrun{run_App()}
 run_App <- function() {
@@ -7,5 +8,5 @@ run_App <- function() {
     stop("Could not find example directory. Try re-installing `SimAdmixtR`.", call. = FALSE)
   }
 
-  runApp(appDir, display.mode = "normal")
+  shiny::runApp(appDir, display.mode = "normal")
 }

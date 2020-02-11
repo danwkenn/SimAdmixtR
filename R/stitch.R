@@ -7,6 +7,7 @@
 #' listA = list(1,2,3,4)
 #' listB = list("A","B","C","D")
 #' stitch(listA,listB)
+#' @export
 stitch <- function(list1,...){
 
   # Extract other arguments as a list of lists:

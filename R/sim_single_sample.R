@@ -6,14 +6,14 @@ sim_single_sample <- function(
   allele_freq_list
 ){
 
-  J <- length(allele_freq.list)
+  J <- length(allele_freq_list)
 
   return(
     sapply(
       1:J,
       function(x) sim_single_locus(
         ancestor_pop_label = ancestor_pop_label,
-        allele_freq = allele_freq.list[[x]])
+        allele_freq = allele_freq_list[[x]])
     )
   )
 }

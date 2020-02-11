@@ -32,8 +32,8 @@ Take simulated genotypes and write to a STRUCTURE input file format.
 \examples{
 #Download files to temporary directory:
 temp_dir <- tempdir()
-download.file(url = XXXX,destfile = paste0(temp_dir,"/input-af-example.csv"))
-download.file(url = XXXX,destfile = paste0(temp_dir,"/example-structure-file.csv"))
+download.file(url = "https://raw.githubusercontent.com/danwkenn/SimAdmixtR/master/inst/example-files/input-allele-frequencies-three-snps.csv",destfile = paste0(temp_dir,"/input-af-example.csv"))
+download.file(url = "https://raw.githubusercontent.com/danwkenn/SimAdmixtR/master/inst/example-files/simple-three-allele-example.csv",destfile = paste0(temp_dir,"/example-structure-file.csv"))
 
 sim_data <- simulate_admixture(
 n_samples = 10,

@@ -7,9 +7,9 @@
 back_convert.Internal(sim_samples, allele_freq_data)
 }
 \arguments{
-\item{list}{outputted from the \link{sim_single_sample} function.}
+\item{sim_samples}{list outputted from the \link{sim_single_sample} function.}
 
-\item{tibble}{ouputted from the \link{read_in_af_data} function.}
+\item{allele_freq_data}{tibble ouputted from the \link{read_in_af_data} function.}
 }
 \value{
 A list of \code{n_samples} elements, each corresponding to a sample. Each element is a matrix with a row for each allele, and a column for each SNP. The elements of the matrix are characters for nucleotides (A,C,G,T).

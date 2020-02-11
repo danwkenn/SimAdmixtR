@@ -27,7 +27,7 @@ The CSV file must comply with the following format rules:
 \examples{
 #Download file to temporary directory:
 temp_dir <- tempdir()
-download.file(url = XXXX,destfile = paste0(temp_dir,"/input-af-example.csv"))
+download.file(url = "https://raw.githubusercontent.com/danwkenn/SimAdmixtR/master/inst/example-files/input-allele-frequencies-three-snps.csv",destfile = paste0(temp_dir,"/input-af-example.csv"))
 allele_frequencies.tbl <- read_in_af_data(file = paste0(temp_dir,"/input-af-example.csv"))
 allele_frequencies.tbl
 }

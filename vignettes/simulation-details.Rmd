@@ -1,0 +1,532 @@
+---
+title: "Simulation Details"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{simulation-details}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(tibble)
+library(reshape2)
+library(dplyr)
+library(purrr)
+library(stringr)
+library(tidyr)
+library(SimAdmixtR)
+set.seed(123)
+```
+
+
+## Introduction
+
+The following document details the genetic inheritance simulation, from inputing the allele frequency data to outputing files for use in STRUCTURE.
+
+The document first gives a step-by-step description with examples of the simulation process for a single locus, including simulation of ancestors from their populations, to transferal of alleles to later generations through inheritance. The following section covers how allele frequency data is read into R and processed into a form useful for simulation. The simulation of multiple loci is then described based on the input data and processes in the previous section, and in the final section the data is formatted ready for input into STRUCTURE.
+
+## Single Locus
+
+### Simulation of ancestors
+
+Suppose we have a situation where at the top level we have one ancestor from population `1` and three ancestors from population `2`.
+```{r}
+ancestor_pop_label = c(1,2,2,2)
+```
+
+Suppose we have three alleles A, B, and C, and the allele frequencies from pulation `1` are `c(0.1,0.3,0.6)`, and population `2` are `c(0.2,0.1,0.7)`. We can store these values as a list:
+
+```{r}
+allele_freq <- list()
+allele_freq[[1]] <- c(0.1,0.3,0.6)
+allele_freq[[2]] <- c(0.2,0.1,0.7)
+```
+
+For example, the first ancestor is from population `1` (see `ancestor_pop_label[1]`), so for each of their two chromosomes, the probability that the gene is C is 0.6 (see `allele_freq[[1]][3]`)
+
+For ease of coding, at this level we code the alleles A, B, and C as 1, 2 and 3, and we can convert these back to A, B, and C later.
+
+Therefore, for each ancestor, we draw two copies. Here is an example of drawing two copies for the first ancestor:
+```{r}
+K <- length(allele_freq[[1]]) # Set the number of possible alleles.
+sample(x = 1:K, # values which can be drawn.
+       size = 2, # number of values to draw.
+       replace = TRUE, # both gene copies could be same allele.
+       prob = allele_freq[[1]] # probabilities for each allele.
+       )
+```
+Therefore, the first ancestors genotype is CB (since `3` corresponds to C and `2` corresponds to B).
+
+We need to repeat this for each ancestor:
+
+```{r}
+n_ancestors <- length(ancestor_pop_label)
+ancestor_alleles <- matrix(,2,n_ancestors)
+
+for(i in 1:n_ancestors){
+  ancestor_alleles[,i] <- 
+    sample(x = 1:K, # values which can be drawn.
+       size = 2, # number of values to draw.
+       replace = TRUE, # both gene copies could be same allele.
+       prob = allele_freq[[ # probabilities for each allele.
+         ancestor_pop_label[i]
+         ]] 
+       )
+}
+
+ancestor_alleles
+```
+
+We can check that the simulation is accurately drawing alleles by sampling a large number of individuals and checking whether the frequency of different genotypes matches with our expected frequencies. The possible combinations of different alleles are given in the table below:
+
+| | A | B | C |
+|-|-|-|-|
+|A|AA|AB|AC|
+|B|BA|BB|BC|
+|C|CA|CB|CC
+
+The Probabilities associated with each of these outcomes is given by multiplying the allele probabilities together:
+```{r}
+genotype_freqs <- allele_freq[[1]] %*% t(allele_freq[[1]])
+genotype_freqs
+```
+
+So the probability of having A and B is equal to 0.03 (BA) plus 0.03 (AB) = 0.06.
+
+Lets simulate 100,000 individuals from population 1:
+```{r}
+ancestor_pop_label <- rep(1,times = 100000)
+n_ancestors <- length(ancestor_pop_label)
+ancestor_alleles <- matrix(,2,n_ancestors)
+
+for(i in 1:n_ancestors){
+  ancestor_alleles[,i] <- 
+    sample(x = 1:K, # values which can be drawn.
+       size = 2, # number of values to draw.
+       replace = TRUE, # both gene copies could be same allele.
+       prob = allele_freq[[ # probabilities for each allele.
+         ancestor_pop_label[i]
+         ]] 
+       )
+}
+
+ancestor_alleles[,1:4]
+
+#Convert matrix into strings:
+genotypes <- paste0(
+  ancestor_alleles[1,],
+  ancestor_alleles[2,]
+)
+
+genotypes[1:4]
+```
+
+We can now calculate the frequency of each of the outcomes:
+```{r}
+frequencies <- table(genotypes)
+frequencies <- frequencies/sum(frequencies)
+frequencies
+```
+
+Comparing these numbers against the table, we see these values are within 0.003 of their associated expected frequencies. For example, the expected frequency for `32` which is numeric coding for CB, is 0.18, and the observed frequency of this allele combination in simulation is 0.17910. 
+
+Given that the allele combination frequencies match up, we can be confident that the genotype frequencies match, but we can use the example from before as a sanity check. The genotype AB, which is equivalent to the allele combinations AB or BA has expected frequency 0.03 + 0.03 = 0.06. The genotype's observed frequency in the 100,000 simulated ancestors was `r frequencies[2]` (see above `12`) + `r frequencies[4]` (see above `21`) = `r frequencies[2] + frequencies[4]`, which is very close to the expected frequency.
+
+### Simulation of mendelian inheritance
+
+Now that the ancestors have been randomly drawn based on the population allele frequencies, we need to simulation the inheritance of genes. Since we have 4 ancestors, the next generation will have 2 individuals, and the following generation will have 1 individual.
+
+Let's simulate the mendelian inheritance of alleles from two parents into a single offspring. Parent 1 has an A on the first chromosome and an A on the second, and Parent 2 has a B on the first chromosome and a C on the second. We can represent these two parents in a matrix, similar to in the previous section. The columns correspond to Parents 1 and 2, and the rows correspond to the first and second chromosomes:
+```{r}
+ancestor_alleles = matrix(
+  c(1,2,1,3),byrow = FALSE,ncol = 2
+)
+
+ancestor_alleles
+```
+
+The offspring will recieve one allele from Parent 1 (the first column) and one allele from Parent 2 (the second column), and there is an equal chance for either allele.
+
+```{r}
+#Initialise the alleles of offspring:
+offspring_alleles <- rep(NA,2)
+
+#Draw first allele:
+offspring_alleles[1] <- sample(x = ancestor_alleles[,1],size = 1)
+offspring_alleles[2] <- sample(x = ancestor_alleles[,2],size = 1)
+offspring_alleles
+```
+We see in this case that the offspring gets a B (`2`) from Parent 1 and an A (`1`) from Parent 2.
+
+We can test that the inheritance simulation is working correctly by testing that the observed combination frequencies match the expected frequencies for a large number of simulated individuals. It is fairly simple to see that AA (`11`), AC (`13`), BA (`21`) and BC (`23`) are the four possibilities, and all have the same probability in the offspring.
+
+```{r}
+#Initialise the alleles of offspring:
+offspring_alleles <- matrix(NA,2,100000)
+
+#Draw first allele:
+for(i in 1:100000){
+offspring_alleles[1,i] <- sample(x = ancestor_alleles[,1],size = 1)
+offspring_alleles[2,i] <- sample(x = ancestor_alleles[,2],size = 1)
+}
+
+#Convert matrix into strings:
+genotypes <- paste0(
+  offspring_alleles[1,],
+  offspring_alleles[2,]
+)
+
+frequencies <- table(genotypes)
+frequencies <- frequencies/sum(frequencies)
+frequencies
+```
+
+As expected the four possible genotypes have the same observed frequencies, which match the expected frequencies.
+
+The above is a simulation of two generations (parent and offspring), however we need to be able to simulate inheritance over multiple generations. Fortunately, inheritance over multiple generations is just a series of parent-offspring inheritances, so we have most of the building blocks already.
+
+Let's aim to simulate over 4 generations, so there are 8 great grandparents, each of which comes from one of the two populations. For this example, let's set the first ancestor to come from population 1 and the rest to come from population 2:
+
+```{r}
+ancestor_pop_label <- c(1,2,2,2,2,2,2,2)
+n_ancestors <- length(ancestor_pop_label)
+ancestor_alleles <- matrix(NA,2,n_ancestors)
+
+for(i in 1:n_ancestors){
+  ancestor_alleles[,i] <- 
+    sample(x = 1:K, # values which can be drawn.
+       size = 2, # number of values to draw.
+       replace = TRUE, # both gene copies could be same allele.
+       prob = allele_freq[[ # probabilities for each allele.
+         ancestor_pop_label[i]
+         ]] 
+       )
+}
+
+ancestor_alleles
+```
+
+We can calculate the number of generations after the initial ancestors as:
+
+```{r}
+G <- log(n_ancestors,base = 2)
+G
+```
+
+Each of the grandparents is the offspring of two great grandparents, so for the first grandparent, we set them as the offspring of the first two great grandparents, and the second grandparent is the offspring of the second two great grandparent and so on.
+
+```{r}
+    #Set the current generation:
+    gen <- G - 1
+
+    #Grandparent alleles:
+    current_alleles <- matrix(,2,2^gen)
+    previous_alleles <- ancestor_alleles
+    
+    #For each grandparent i we draw from great grandparent 2*i-1 and 2*i:
+    for(i in 1:(2^gen)){
+      current_alleles[1,i] <- sample(x = previous_alleles[,2*i-1],size = 1)
+      current_alleles[2,i] <- sample(x = previous_alleles[,2*i],size = 1)
+    }
+    current_alleles
+```
+
+We now have 4 grandparents. The two parents are drawn from the grandparents in a similar way:
+
+```{r}
+    #Set the current generation:
+    gen <- gen - 1
+
+    #Grandparent alleles:
+    previous_alleles <- current_alleles
+    
+    #New alleles for parents:
+    current_alleles <- matrix(,2,2^gen)
+    
+    #For each grandparent i we draw from great grandparent 2*i-1 and 2*i:
+    for(i in 1:(2^gen)){
+      current_alleles[1,i] <- sample(x = previous_alleles[,2*i-1],size = 1)
+      current_alleles[2,i] <- sample(x = previous_alleles[,2*i],size = 1)
+    }
+    current_alleles
+```
+
+And finally we can use the exact same code for the inheritance of parents to offspring:
+```{r}
+    #Set the current generation:
+    gen <- gen - 1
+
+    #Grandparent alleles:
+    previous_alleles <- current_alleles
+    
+    #New alleles for parents:
+    current_alleles <- matrix(,2,2^gen)
+    
+    #For each grandparent i we draw from great grandparent 2*i-1 and 2*i:
+    for(i in 1:(2^gen)){
+      current_alleles[1,i] <- sample(x = previous_alleles[,2*i-1],size = 1)
+      current_alleles[2,i] <- sample(x = previous_alleles[,2*i],size = 1)
+    }
+    current_alleles
+```
+
+This type of repetition lends itself very well to a `while` loop, so instead of manually stepping through generations, we can automatically run through the generations:
+
+```{r}
+  #Simulate ancestor alleles:
+  gen = G
+
+  #Initialise previous generation's alleles to ancestor alleles:
+  previous_alleles <- ancestor_alleles
+  
+  #Loop while there are still generations to loop through:
+  while(gen > 0){
+    gen = gen - 1
+    #Mendelian inheritance:
+    current_alleles <- matrix(,2,2^gen)
+    for(i in 1:(2^gen)){
+      current_alleles[1,i] <- sample(x = previous_alleles[,2*i-1],size = 1)
+      current_alleles[2,i] <- sample(x = previous_alleles[,2*i],size = 1)
+    }
+    previous_alleles <- current_alleles
+  }
+current_alleles
+```
+
+The procedure described in the previous sections is all compiled into a single function called `sim_single_locus`.
+
+## Reading in data
+
+The allele frequency data-set needs to be read into R and then processed so it can be used in the simulation. We first read it in:
+
+```{r}
+#Read in: 
+example_files_location <- system.file("example-files", package = "SimAdmixtR")
+
+allele_freq_data <- read.csv(file = paste0(example_files_location,"/input-allele-frequencies-three-snps.csv"),stringsAsFactors = FALSE)
+  head(allele_freq_data)
+#Convert the values into characters for string manipulation:
+  allele_freq_data <- apply(allele_freq_data,2,as.character)
+```
+
+We will need to have more complex data-types than the standard R types, so a `tibble` data-frame is used:
+```{r}
+  #Convert to tidyverse object "tibble".
+  allele_freq_data <- as.tibble(allele_freq_data)
+```
+
+We rename the columns to shorter names, and then subset to only include the columns of interest in the simulation.
+```{r}
+#Automatically determine the number of populations:
+n_populations <- ncol(allele_freq_data) - 5
+
+#Rename columns:
+colnames(allele_freq_data) <- c("snp_id","chr_id","variants",paste0("pop",1:n_populations,"_af"),"daf","evc_prediction")
+
+#Subset by columns:
+allele_freq_data <- allele_freq_data %>% select(-chr_id,-daf,-evc_prediction)
+allele_freq_data
+```
+
+We then rearrange the data into a longer form:
+```{r}
+  #Melt into a long form:
+  allele_freq_data <- allele_freq_data %>% melt(id = c("snp_id","variants"))
+  head(allele_freq_data)
+```  
+
+Next we need to create variant vectors rather than strings delimited by `/` symbols, and allele frequency vectors rather than a single probability. The processing of allele frequency vectors is done by a function called `af_split()`:
+
+```{r}
+#Function used for reading in allele frequency file. Converts
+#a string to vector of frequencies. e.g. "0.01/0.89" to c(0.01,0.89,0.1)
+af_split <- function(x,n_vari){
+  temp <- as.numeric(
+    strsplit(x,"/")[[1]])
+  if(length(temp) == (n_vari - 1)){
+    temp <- c(temp, 1 - sum(temp))
+  }
+  return(temp)
+}
+
+#Convert allele frequencies to usable vectors:
+  allele_freq_data <- 
+    allele_freq_data %>% 
+    mutate(variants = strsplit(variants,"/")) %>%
+    mutate(value = map2(.x = value,.y = variants,.f = function(x,y) af_split(x,length(y))))
+  head(allele_freq_data)
+```  
+
+Notice now that the variants column has vectors, since it is displaying `<chr [2]>`, and the value column, which holds the allele frequencies also has vectors. There is now a short vector for each row of the data-set. We can access them with the familiar index method for data-sets. For example we can access the variants for SNP `rs1426654` with:
+
+```{r}
+allele_freq_data[1,2]
+```
+
+We then clean up the SNP id's in case there are some white spaces and convert the data-set to a wide form, where each of the populations has a column of allele frequency vectors:
+```{r}
+  #Remove white space:
+  allele_freq_data$snp_id <- str_replace_all(allele_freq_data$snp_id,pattern = " ",replacement = "")
+  
+  #Convert to wide format:
+  allele_freq_data <- allele_freq_data %>% spread(variable,value)
+  head(allele_freq_data)
+```
+
+## Simulation of Multiple Loci
+
+Generalising the simulation to multiple loci is not particularly difficult, since we have made the assumption that all genes are in equilibrium, and therefore have no statistical dependence between them. All that is required is to perform the same simulation procedure for each of the loci. For example, suppose we take the first two genes in the above data-set: `rs10455681` and `rs10496971`, and we want to simulate for great grandparents. We specify the populations where each great grandparent came from:
+
+```{r}
+ancestor_pop_label <- c(1,2,2,2,2,2,2,1)
+```
+
+Then we simulate for the first locus:
+```{r}
+offspring_alleles <- matrix(NA,2,2)
+offspring_alleles[,1] <- sim_single_locus(
+  ancestor_pop_label = ancestor_pop_label, 
+  allele_freq = list(
+    allele_freq_data[1,3][[1]],
+    allele_freq_data[1,4][[1]]
+                          ))
+
+offspring_alleles[,2] <- sim_single_locus(
+  ancestor_pop_label = ancestor_pop_label, 
+  allele_freq = list(
+    allele_freq_data[2,3][[1]],
+    allele_freq_data[2,4][[1]]
+                          ))
+
+offspring_alleles
+```
+Note that the 1's and 2's are numeric codings for the variants, so they only meaningful for each locus; 1 for the first locus does not have any connection to 1 for the second locus.
+
+We can repeat this procedure for every single locus in the data-set:
+```{r}
+#Determine number of loci:
+J <- nrow(allele_freq_data)
+
+offspring_alleles <- matrix(NA,2,nrow(allele_freq_data))
+
+for(j in 1:J){
+offspring_alleles[,j] <- sim_single_locus(
+  ancestor_pop_label = ancestor_pop_label, 
+  allele_freq = list(
+    allele_freq_data[j,3][[1]],
+    allele_freq_data[j,4][[1]]
+                          ))
+}
+
+offspring_alleles
+```
+
+This is a single simulated individual for the data. The above procedure is compiled into a function called `sim_single_sample`. This function differs slightly from uses an R function called `sapply` instead of a for loop for a slight computational advantage, however the function behaves in the same way.
+
+To simulate multiple individuals only requires that the code be run multiple times, and the resulting simulated genotypes be stored. This is done in a function called `simulate_admixture`.
+
+We can use this function to simulate 10 individuals:
+
+```{r}
+sim_samples <- 
+  simulate_admixture(
+    n_samples = 10,
+    ancestor_pop_label = ancestor_pop_label,
+    file = paste0(example_files_location,
+                  "/input-allele-frequencies-three-snps.csv")
+  )
+
+length(sim_samples)
+sim_samples[[8]]
+```
+
+The result is a list of 10 genotypes, each corresponding to a simulated individual. Notice that the output for `sim_single_locus` and `sim_single_sample` have integers as elements, but the above output has the nucleotide letters. The conversion back from integer representation, used internally, to the original nucleotide variants is explained in the following section.
+
+### Converting back to A's, C's, G's and T's
+
+We now have the simulated individuals, however they are currently coded numerically. In order to output back into the actual variants we need to "back-convert". All of the information we need to do this is in the `allele_freq_data` data-set. For example, for simulated sample 8 above, the integer values used internally to represent the randomly generated alleles for the 2nd locus are 2 and 1. We see in `allele_freq_data` that the variants for the 2nd locus are:
+```{r}
+allele_freq_data$snp_id[2]
+allele_freq_data[2,]$variants
+```
+so we can back-convert those values to be A and T.
+
+This process is done for every simulated individual at every locus in code similar to this:
+
+```{r,eval=FALSE,include=TRUE}
+  #For each simulated sample:
+  for(i in 1:length(sim_samples)){
+    
+    #Temporarily create a copy of the ith sample called `temp`.
+    temp <- sim_samples[[i]]
+    
+    #For each locus j:
+    for(j in 1:ncol(sim_samples[[1]])){
+      
+      #Convert the 
+      temp[,j] <- allele_freq_data$variants[[j]][sim_samples[[i]][,j]]
+    }
+    colnames(temp) <- allele_freq_data$snp_id
+    sim_samples[[i]] <- temp
+  }
+```
+
+The above code is compiled into a function called `back_convert.Internal()`. As a naming convention I tend to suffix functions that aren't intented for direct use with `.Internal`.
+
+## Formatting for STRUCTURE
+
+The simulated data is now in readable form, and can be used inside R. However, program STRUCTURE takes a specific format of input. First, instead of A, C, G and T, STRUCTURE numerically codes these to 1-4 respectively:
+
+```{r}
+  #Create object to convert to numeric (1:4) from ATCG
+  structure_code <- c("A","C","T","G")
+```
+
+To convert to structure we collapse the list to a data-frame:
+```{r}
+  #convert simulated data to long data-frame format:
+  sim_data_long <- melt(sim_samples,varnames = c("chromosome","snp_id"),level = "subject")
+  head(sim_data_long)
+```
+
+We then convert the data to the STRUCTURE numeric coding:
+```{r}  
+  #Convert data to numeric: 
+  sim_data_long <- 
+    sim_data_long %>% mutate(
+      value = factor(as.character(value),levels = structure_code)) %>%
+    mutate(num_value = as.numeric(value))
+
+  head(sim_data_long)
+```
+
+To ensure that the SNPs are in the correct order a sample STRUCTURE data-set can be imported through the below code, but it will not be run for this example:
+```{r,eval = FALSE}
+  #Ensure order of SNPs are correct:
+  sim_data_long$snp_id <- factor(as.character(sim_data_long$snp_id),levels = structure_snp_order)
+```
+
+The data-frame is now converted to the shape of the STRUCTURE input file. Each sample is given a name of the form `SIM` then an integer.
+```{r}
+  sample_names <- NULL
+  #Convert to matrix form:
+  allele_data <- sim_data_long %>% dcast(Lsubject ~ snp_id + chromosome,value.var = "num_value")
+  
+  colnames(allele_data) <- NULL
+  allele_data <- as.matrix(allele_data[,-1])
+  if(is.null(sample_names)){
+    allele_data <- cbind(paste0("SIM",1:nrow(allele_data)),1,1,allele_data)
+  }else{
+    allele_data <- cbind(sample_names,1,1,allele_data)
+  }
+  head(allele_data)[,1:4]
+```
+
+The above code is compiled into a function called `write_to_structure()`.

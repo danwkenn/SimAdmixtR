@@ -1,15 +1,17 @@
 Package: SimAdmixtR
 Type: Package
-Title: Simulates a set of admixed diploid genotypes based on SNP allele frequencies.
+Title: Simulates a set of admixed diploid genotypes based on SNP allele frequencies
 Version: 0.1.0
 Author: Daniel W. Kennedy
 Maintainer: Daniel W. Kennedy <dan.w.kennedy@outlook.com>
 Description: The package imports the SNP allele frequencies from two or more origin populations, as well as the number and make-up of ancestors. It then randomly samples the ancestor genomes from the origin populations, and then, using Mendelian rules, simulates the inheritance of alleles down to the current generation. It can also repeat this process a specified number of times.
-    The package then outputs the set of repeated simulated genotypes as text file in the input format of the STRUCTURE program. See website: XXXXX for more information.
+    The package then outputs the set of repeated simulated genotypes as text file in the input format of the STRUCTURE program.
 License: MIT + file LICENSE
+URL: https://github.com/danwkenn/SimAdmixtR
 Encoding: UTF-8
 LazyData: true
 Imports:
+    utils,
     tibble,
     dplyr,
     magrittr,
@@ -17,8 +19,12 @@ Imports:
     purrr,
     stringr,
     tidyr,
-    shiny
+    shiny,
+    rlang
 Suggests:
-    ggplot2
+    ggplot2,
+    knitr,
+    rmarkdown
 Authors@R: person("Daniel", "Kennedy", email = "dan.w.kennedy@outlook.com",role = c("aut", "cre"))
 RoxygenNote: 6.1.1
+VignetteBuilder: knitr

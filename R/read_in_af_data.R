@@ -13,17 +13,20 @@
 #' @examples
 #' #Download file to temporary directory:
 #' temp_dir <- tempdir()
-#' download.file(url = XXXX,destfile = paste0(temp_dir,"/input-af-example.csv"))
+#' download.file(url = "https://raw.githubusercontent.com/danwkenn/SimAdmixtR/master/inst/example-files/input-allele-frequencies-three-snps.csv",destfile = paste0(temp_dir,"/input-af-example.csv"))
 #' allele_frequencies.tbl <- read_in_af_data(file = paste0(temp_dir,"/input-af-example.csv"))
 #' allele_frequencies.tbl
+#' @export
+#' @importFrom magrittr %>%
+#' @importFrom rlang .data
 read_in_af_data <- function(file){
 
   #Read in raw:
-  allele_freq_data <- read.csv(file = file,stringsAsFactors = FALSE)
+  allele_freq_data <- utils::read.csv(file = file,stringsAsFactors = FALSE)
   allele_freq_data <- apply(allele_freq_data,2,as.character)
 
   #Convert to tidyverse object "tibble".
-  allele_freq_data <- as.tibble(allele_freq_data)
+  allele_freq_data <- tibble::as.tibble(allele_freq_data)
 
   #Identify the population frequencies based on the ".D." string.
   pop_freq_columns <- grepl(colnames(allele_freq_data),pattern = "\\.D\\.$")
@@ -36,18 +39,18 @@ read_in_af_data <- function(file){
   allele_freq_data <- allele_freq_data[,c("snp_id","variants",paste0("pop",1:sum(pop_freq_columns),"_af"))]
 
   #Melt into a long form:
-  allele_freq_data <- allele_freq_data %>% melt(id = c("snp_id","variants"))
+  allele_freq_data <- allele_freq_data %>% reshape2::melt(id = c("snp_id","variants"))
 
   #Convert allele frequencies to usable vectors:
   allele_freq_data <-
     allele_freq_data %>%
-    mutate(variants = strsplit(variants,"/")) %>%
-    mutate(value = map2(.x = value,.y = variants,.f = function(x,y) af_split(x,length(y))))
+    dplyr::mutate(variants = strsplit(.data$variants,"/")) %>%
+    dplyr::mutate(value = purrr::map2(.x = .data$value,.y = .data$variants,.f = function(x,y) af_split(x,length(y))))
 
   #Remove white space:
-  allele_freq_data$snp_id <- str_replace_all(allele_freq_data$snp_id,pattern = " ",replacement = "")
+  allele_freq_data$snp_id <- stringr::str_replace_all(allele_freq_data$snp_id,pattern = " ",replacement = "")
 
   #Convert to wide format:
-  allele_freq_data <- allele_freq_data %>% spread(variable,value)
+  allele_freq_data <- allele_freq_data %>% tidyr::spread(.data$variable,.data$value)
   return(allele_freq_data)
 }

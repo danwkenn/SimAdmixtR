@@ -7,12 +7,13 @@
 #' @examples
 #' #Download file to temporary directory:
 #' temp_dir <- tempdir()
-#' download.file(url = XXXX,destfile = paste0(temp_dir,"/input-af-example.csv"))
+#' download.file(url = "https://raw.githubusercontent.com/danwkenn/SimAdmixtR/master/inst/example-files/input-allele-frequencies-three-snps.csv",destfile = paste0(temp_dir,"/input-af-example.csv"))
 #' sim_data <- simulate_admixture(
 #' n_samples = 10,
 #' ancestor_pop_label = c(1,2,2,2),
 #' file = paste0(temp_dir,"/input-af-example.csv")
 #' )
+#' @export
 simulate_admixture <- function(
   n_samples,
   ancestor_pop_label,
@@ -30,7 +31,7 @@ allele_freq.list = stitch(
 sim_samples <-
   lapply(1:n_samples,
          function(x){
-           sim_single_sample.Internal(
+           sim_single_sample(
              ancestor_pop_label = ancestor_pop_label,
              allele_freq_list = allele_freq.list
            )
