@@ -1,4 +1,6 @@
 #' Internal function which finds possible genotypes from available SNP variants.
+#' @param allele_freq_data Processed allele frequencies data-set read in using \link{read_in_af_data}.
+#' @return A list of possible genotypes based on allele variants.
 genotype_finder <- function(allele_freq_data){
 
   genotype_finder.Internal <- function(x){

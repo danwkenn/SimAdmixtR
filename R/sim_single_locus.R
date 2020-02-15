@@ -14,13 +14,22 @@
 #' sim_single_locus(
 #' ancestor_pop_label = c(2,1,1,1),
 #' allele_freq = list(
-#' c(0.2,0.9),c(0.9,0.2)
+#' c(0.1,0.9),c(0.9,0.1)
 #' ))
 #' @export
 sim_single_locus <- function(
   ancestor_pop_label,
   allele_freq
 ){
+
+  # Check inputs:
+  n_generations <- log(length(ancestor_pop_label),base = 2)
+  if(n_generations != abs(round(n_generations))){
+    stop("Ancestors improperly specified. Number of ancestors must be a power of 2.")
+  }
+  if(!dplyr::near(sum(allele_freq[[1]]), 1)){
+    stop("Allele frequencies improperly specified. Allele frequencies must sum to 1.")
+  }
 
   #Calculate number of generations:
   G <- log(length(ancestor_pop_label),base = 2)

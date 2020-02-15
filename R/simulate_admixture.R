@@ -20,13 +20,20 @@ simulate_admixture <- function(
   file
 ){
 
+  # Check inputs:
+
+
 # Read in population allele frequencies data:
-allele_freq_data <- read_in_af_data(file)
+allele_freq_data <- read_in_af_data(file,ancestor_pop_label = ancestor_pop_label)
 
 # Create a paired list of the allele frequencies for hte
-allele_freq.list = stitch(
-  allele_freq_data[,3],
-  allele_freq_data[,4])
+# allele_freq.list = stitch(
+#   allele_freq_data[,3],
+#   allele_freq_data[,4],
+#   allele_freq_data[,5])
+
+population_columns = grep(colnames(allele_freq_data),pattern = "pop\\d_af")
+allele_freq.list <- stitch_big_list(allele_freq_data[,population_columns])
 
 sim_samples <-
   lapply(1:n_samples,

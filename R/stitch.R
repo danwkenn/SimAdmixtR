@@ -29,3 +29,29 @@ stitch <- function(list1,...){
   return(list1)
 }
 
+stitch_big_list <- function(lists){
+
+  if(length(lists) == 1){
+    return(lists[[1]])
+  }
+
+  # Extract other arguments as a list of lists:
+  input_list = lists[-1]
+  list1 = lists[[1]]
+  #input_list <- as.list(substitute(list(...)))
+
+  # Create additional heirarchy for the first list:
+  for(i in 1:length(list1)){
+    list1[[i]] <- list(list1[[i]])
+  }
+
+  # "stitch" on the elements of the other list(s):
+  for(j in 1:length(list1)){
+    for(i in 1:length(input_list)){
+      list1[[j]][[i+1]] <- input_list[[i]][[j]]
+    }
+  }
+
+  return(list1)
+}
+
