@@ -27,6 +27,6 @@ The function proceeds as follows:
 sim_single_locus(
 ancestor_pop_label = c(2,1,1,1),
 allele_freq = list(
-c(0.2,0.9),c(0.9,0.2)
+c(0.1,0.9),c(0.9,0.1)
 ))
 }

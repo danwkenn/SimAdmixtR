@@ -4,9 +4,15 @@
 \alias{write_to_structure}
 \title{Take simulated genotypes and write to a STRUCTURE input file format.}
 \usage{
-write_to_structure(sim_data, structure_snp_order = NULL,
-  example_structure_file = NULL, sample_names = NULL,
-  output = "test", type = c("txt", "csv"), keep_extra_snps = TRUE)
+write_to_structure(
+  sim_data,
+  structure_snp_order = NULL,
+  example_structure_file = NULL,
+  sample_names = NULL,
+  output = "test",
+  type = c("txt", "csv"),
+  keep_extra_snps = TRUE
+)
 }
 \arguments{
 \item{sim_data}{Output from simulate_admixture}

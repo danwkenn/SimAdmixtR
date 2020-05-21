@@ -6,6 +6,12 @@
 \usage{
 string_to_vector(x)
 }
+\arguments{
+\item{x}{A string.}
+}
+\value{
+a vector of characters.
+}
 \description{
 Simple internal function to create a vector of characters from a string.
 }

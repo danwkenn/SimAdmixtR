@@ -4,10 +4,12 @@
 \alias{read_in_af_data}
 \title{Read in the population allele frequencies from prespecified CSV file format.}
 \usage{
-read_in_af_data(file)
+read_in_af_data(file, ancestor_pop_label = NULL)
 }
 \arguments{
 \item{file}{Path to CSV file containing the population allele frequencies.}
+
+\item{ancestor_pop_label}{A vector of integers giving the highest level of the family tree, which consists only of ancestors from pure genetic populations. Integers index the population, with order given by the order in which the population dominant allele frequencies are provided in the input allele frequencies file. In this function this parameter is only used to check that it corresponds correctly to the input file. Leaving it at its default value (`NULL`) will bypass these checks and load the input file.}
 }
 \value{
 A \link[tibble]{tibble} data-frame with a column for the SNP ID called \code{snp_id}, a column for the variants called \code{variants} which contain character vectors for each SNP, and a column for each population of allele frequencies as sum-to-one constrained vectors.
@@ -22,6 +24,7 @@ The CSV file must comply with the following format rules:
 \item{The file's first 3 columns must be the SNP ID, The chromosome and position, and the SNP variants.}
 \item{ The variants must be specified by a list of nucleotides separated by backslashes '/', where the most frequent allele is first. E.g. 'A/G' specifies a SNP with the most common variant being 'A' and the least common being 'G'.}
 \item{ In the following columns the derived allele frequencies in each pure population. The column names must have "(D)" at the end of their name to be recognised.}
+\item{ Only ancestor population allele frequencies can have names ending with (D).}
 }
 }
 \examples{
